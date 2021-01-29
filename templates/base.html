@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  </head>
+  <body>
+      <div class=col-md-3>
+      </div>
+      <div class=col-md-6>
+      <h1> Demo page </h1>
+      <div class="form-group row">
+          <div class="col-lg-6">
+              <form method="post" id="post_form">
+                  <label for="input_sent">Input Sentence:</label>
+                  <input type="text" clas="form-control input-lg" id="sentence" name="sentence">
+              </form>
+          </div><!-- /.col-lg-6 -->
+          <div class="col-lg-6">
+              <button name="text" id="text_button" type="button" onclick="textButtonFunc()">Text</button>
+              <form action="/clear" method="post">
+                  <button name="clear_btn" type="button">Clear</button> 
+              </form>
+              <button name="record" id="record_button">Record</button>
+          </div>
+      </div><!-- /.row -->
+      <hr style='border-width: 5px;'>
+      {% for sent in history %}
+      {% for key, val in sent.items() %}
+      {% if 'user' in key %}
+      <div class="card">
+          <div class="card-body" style="text-align: left;"> {{ val }}  </div>
+      </div>
+      {% else %}
+      <div class="card">
+          <div class="card-body" style="text-align: right;"> {{ val }}  </div>
+      </div>
+      {% endif %}
+      <br>
+      {% endfor %} 
+      {% endfor %} 
+
+	  <!-- Latest compiled and minified JavaScript -->
+	  <!--script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script-->
+      <script type="module" src="{{ url_for('static', filename='js/test.js') }}"></script>
+      <script src='/js/test.js'></script>
+      <script>
+          function textButtonFunc(){
+              const url = '${window.origin}/txtbut';
+              var text = document.getElementById('sentence');
+              fetch(
+                  url,
+                  {
+                      method: 'post',
+                      headers: {
+                          'Content-Type': 'application/json',
+                      },
+                      body: {
+                          'text': text.value,
+                      }
+                  });
+          }
+      </script>
+  </body>
+</html>
+
+
