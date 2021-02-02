@@ -1,29 +1,26 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, make_response
 import json
+import os
+import uuid
+import io
+import base64
+from pydub import AudioSegment
 
 from models.blenderbot import HuggingfaceBlenderbot
+
+import nemo
+import nemo.collections.asr as nemo_asr
 
 app = Flask(__name__, static_url_path='', static_folder='static')
 
 history = []
-#bot = HuggingfaceBlenderbot()
+
+#nlp_model = HuggingfaceBlenderbot()
+#asr_model = nemo_asr.models.EncDecCTCModel.from_pretrained(model_name="QuartzNet15x5Base-En")
 
 @app.route('/', methods=('GET', 'POST'))
 def index():
-    if request.method == 'POST':
-        sentence = request.form['text']
-
-        #res = bot(history, sentence)
-        res = sentence
-        history.append({'user': sentence, 'bot': res})
-        print (history)
-    else:
-        print ('get called')
-    
-    if len(history) > 0:
-        return render_template('base.html', history=history)
-    else:
-        return render_template('base.html', history={})
+    return render_template('index.html')
 
 @app.route('/clear', methods=('GET', 'POST'))
 def clear_hist():
@@ -43,10 +40,46 @@ def record():
     return redirect(url_for('index'))
 
 
-@app.route('/textbut', methods=('GET', 'POST'))
-def nonamefunc(): 
-    text = (request.form['text'])
-    return text
+@app.route('/txtBtnClick', methods=('GET', 'POST'))
+def txtBtnClick(): 
+    if request.method == 'POST':
+        print (request.get_json())
+        res = make_response({'text': 'response'}, 200)
+        return res
+    else:
+        return ''
 
+@app.route('/recordBtnClick', methods=('GET', 'POST'))
+def recordBtnClick():
+    if request.method == 'POST':
+        pass
+    return "hiel"
+
+@app.route('/clearBtnClick', methods=('GET', 'POST'))
+def clearBtnClick():
+    return ""
+
+
+@app.route('/inference', methods=('GET', 'POST'))
+def infer():
+    if request.method == 'POST':
+        print ('infer called!!!')
+        record = request.json.get('record')
+        record = base64.b64decode(record.encode('utf-8'))
+
+        as_audio = AudioSegment.from_file(
+                io.BytesIO(record)).\
+                        set_frame_rate(16000).set_channels(1)
+
+        wavpath = 'tmp/tmpaudio.wav'
+        as_audio.export(wavpath, format='wav')
+        transcript = asr_model.transcribe(paths2audio_files=[wavpath])
+        print ('transcript: ', transcript)
+
+        response = nlp_model([], transcript[0])
+        print ('response: ', response)
+
+        res = make_response({'transcript': transcript[0], 'response': response}, 200)
+        return res
 
 

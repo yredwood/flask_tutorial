@@ -21,11 +21,11 @@
           <div class="col-lg-6">
               <form method="post" id="post_form">
                   <label for="input_sent">Input Sentence:</label>
-                  <input type="text" clas="form-control input-lg" id="sentence" name="sentence">
+                  <input type="text" class="form-control input-lg" id="sentence" name="sentence">
               </form>
           </div><!-- /.col-lg-6 -->
           <div class="col-lg-6">
-              <button name="text" id="text_button" type="button" onclick="textButtonFunc()">Text</button>
+              <button name="text" id="text_button" type="button" onclick="textButtonFunc();">Text</button>
               <form action="/clear" method="post">
                   <button name="clear_btn" type="button">Clear</button> 
               </form>
@@ -50,23 +50,18 @@
 
 	  <!-- Latest compiled and minified JavaScript -->
 	  <!--script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script-->
-      <script type="module" src="{{ url_for('static', filename='js/test.js') }}"></script>
-      <script src='/js/test.js'></script>
       <script>
-          function textButtonFunc(){
-              const url = '${window.origin}/txtbut';
+          function textButtonFunc() {
+              const url = '/txtbut';
               var text = document.getElementById('sentence');
-              fetch(
-                  url,
-                  {
-                      method: 'post',
-                      headers: {
-                          'Content-Type': 'application/json',
-                      },
-                      body: {
-                          'text': text.value,
-                      }
-                  });
+              fetch(url, {
+                  method: "POST",
+                  body: JSON.stringify({text: 'hihi'}),
+                  cache: "no-cache",
+                  headers: new Headers({
+                      "content-type": "application/json"
+                  })
+              })
           }
       </script>
   </body>

@@ -1,5 +1,162 @@
-{% extends 'base.html' %}
+<!doctype html>
+<html lang="en">
+  <head>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  </head>
+  <body>
+      <input type="text" class="form-control input-lg" id="text_input" value="type first sentence or record">
+      <button id="text_input_btn" type="button" onclick="txtBtnClick()"> Text input </button>
+      <button id="record_btn" type="button" onclick="recordBtnClick()"> Record </button>
+      <button id="clear" type="button" onclick="clearBtnClick()"> Clear </button>
+      <hr style='border-width: 5px;'>
+      <div id="txt_history"></div>
+
+      <!-- scripts starts from here-->
+      <script>
+          <!-- txtbtnclick start -->
+          var hist = ['hist initialized']
+          function txtBtnClick() {
+              const url = '/txtBtnClick';
+              var text = document.getElementById('text_input').value;
+              fetch(url, {
+                  method: "POST",
+                  body: JSON.stringify({
+                      text: text,
+                      history: hist,
+                  }),
+                  headers: new Headers({
+                      'content-type': 'application/json'
+                  }),
+              })
+                  .then(function (response) {
+                      if (response.status !== 200) {
+                          console.log('Response status was not 200')
+                          return ;
+                      }
+                      response.json().then(function (data) {
+                          var para = document.createElement('p')
+                          var node = document.createTextNode(text)
+                          para.style = "text-align: left"
+                          para.appendChild(node)
+                          document.getElementById('txt_history').appendChild(para)
+
+                          var para = document.createElement('p')
+                          var node = document.createTextNode(data.text)
+                          para.style = "text-align: right"
+                          para.appendChild(node)
+                          document.getElementById('txt_history').appendChild(para)
+
+                          hist.push(text)
+                          hist.push(data.text)
+                          })
+                      })
+          }
+          <!-- txtbtnclick end -->
+
+          <!-- recordbtnclick starts -->
+          let isRecord = true
+          let audio
+          let recorder
+
+          async function recordBtnClick() {
+              if (isRecord) {
+                  isRecord = !isRecord
+                  document.getElementById('record_btn').style.background = 'red'
+                  if (!recorder) {
+                      recorder = await recordAudio()
+                  }
+                  recorder.start()
+              }
+              else {
+                  isRecord = !isRecord
+                  document.getElementById('record_btn').style.background = 'initial'
+                  audio = await recorder.stop()
+                  saveAndInfer()
+              }
+          }
 
 
-{% endblock %}
+          const recordAudio = () => 
+            new Promise(async resolve => {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                const mediaRecorder = new MediaRecorder(stream)
+                let audioChunks = []
+
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    audioChunks.push(event.data)
+                })
+
+                const start = () => {
+                    audioChunks = []
+                    mediaRecorder.start()
+                }
+
+                const stop = () => 
+                    new Promise(resolve => {
+                        mediaRecorder.addEventListener('stop', () => {
+                            const audioBlob = new Blob(audioChunks);
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            const audio = new Audio(audioUrl);
+                            const play = () => audio.play();
+                            resolve({ audioChunks, audioBlob, audioUrl, play });
+                        })
+                        mediaRecorder.stop()
+                    })
+                
+                resolve({ start, stop })
+            })
+
+
+          const saveAndInfer = () => {
+              const reader = new FileReader()
+              reader.readAsDataURL(audio.audioBlob)
+              reader.onload = () => {
+                  url = '/inference'
+                  base64AudioMessage = reader.result.split(',')[1]
+                  fetch(url,
+                      {
+                          method: 'POST',
+                          headers: {'Content-Type': 'application/json'},
+                          body: JSON.stringify({
+                              record: base64AudioMessage,
+                          })
+
+                      }
+                  )
+                      .then(function (response) { 
+                          response.json().then(function (data) {
+                              var para = document.createElement('p')
+                              var node = document.createTextNode(data.transcript)
+                              para.style = "text-align: left"
+                              para.appendChild(node)
+                              document.getElementById('txt_history').appendChild(para)
+
+                              var para = document.createElement('p')
+                              var node = document.createTextNode(data.response)
+                              para.style = "text-align: right"
+                              para.appendChild(node)
+                              document.getElementById('txt_history').appendChild(para)
+
+                          })
+
+                      })
+              }
+          }
+          <!-- recordbtnclick ends -->
+
+          <!-- clrbtnclick starts -->
+          <!-- clrbtnclick ends -->
+      </script>
+  </body>
+</html>
+
 
