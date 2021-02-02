@@ -6,6 +6,8 @@
 
 	<!-- Optional theme -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
     <!-- Required meta tags -->
     <meta charset="utf-8">
@@ -13,24 +15,35 @@
 
   </head>
   <body>
-      <input type="text" class="form-control input-lg" id="text_input" value="type first sentence or record">
-      <button id="text_input_btn" type="button" onclick="txtBtnClick()"> Text input </button>
-      <button id="record_btn" type="button" onclick="recordBtnClick()"> Record </button>
-      <button id="clear" type="button" onclick="clearBtnClick()"> Clear </button>
-      <hr style='border-width: 5px;'>
-      <div id="txt_history"></div>
+      <div class="container">
+      <audio id="tts_audio">
+        <source src="" type="audio/wav">
+      </audio>
+      <div class="row" style="padding-top: 50px;">
+        <div class="col-3-md"></div>
+        <div class="col-6-md">
+          <input type="text" class="form-control input-lg" id="text_input" value="type first sentence or record">
+          <button id="text_input_btn" type="button" onclick="txtBtnClick()"> Text input </button>
+          <button id="record_btn" type="button" onclick="recordBtnClick()"> Record </button>
+          <button id="clear" type="button" onclick="clearBtnClick()"> Clear </button>
+          <hr style='border-width: 5px;'>
+          <div id="txt_history"></div>
+        </div>
+        <div class="col-3-md"></div>
+      </div>
+      </div>
 
       <!-- scripts starts from here-->
       <script>
           <!-- txtbtnclick start -->
-          var hist = ['hist initialized']
+          var hist = []
           function txtBtnClick() {
               const url = '/txtBtnClick';
               var text = document.getElementById('text_input').value;
               fetch(url, {
                   method: "POST",
                   body: JSON.stringify({
-                      text: text,
+                      query: text,
                       history: hist,
                   }),
                   headers: new Headers({
@@ -50,13 +63,16 @@
                           document.getElementById('txt_history').appendChild(para)
 
                           var para = document.createElement('p')
-                          var node = document.createTextNode(data.text)
+                          var node = document.createTextNode(data.response)
                           para.style = "text-align: right"
                           para.appendChild(node)
                           document.getElementById('txt_history').appendChild(para)
 
                           hist.push(text)
-                          hist.push(data.text)
+                          hist.push(data.response)
+
+                          var audio = new Audio("data:audio/wav;base64," + data.wav)
+                          audio.play()
                           })
                       })
           }
@@ -128,6 +144,7 @@
                           headers: {'Content-Type': 'application/json'},
                           body: JSON.stringify({
                               record: base64AudioMessage,
+                              history: hist,
                           })
 
                       }
@@ -145,6 +162,12 @@
                               para.style = "text-align: right"
                               para.appendChild(node)
                               document.getElementById('txt_history').appendChild(para)
+
+                              hist.push(data.transcript)
+                              hist.push(data.response)
+
+                              var audio = new Audio("data:audio/wav;base64," + data.wav)
+                              audio.play()
 
                           })
 

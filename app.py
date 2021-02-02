@@ -5,11 +5,7 @@ import uuid
 import io
 import base64
 from pydub import AudioSegment
-
-from models.blenderbot import HuggingfaceBlenderbot
-
-import nemo
-import nemo.collections.asr as nemo_asr
+import requests
 
 app = Flask(__name__, static_url_path='', static_folder='static')
 
@@ -17,6 +13,7 @@ history = []
 
 #nlp_model = HuggingfaceBlenderbot()
 #asr_model = nemo_asr.models.EncDecCTCModel.from_pretrained(model_name="QuartzNet15x5Base-En")
+inference_url = 'http://fury.aitricsdev.com:40113'
 
 @app.route('/', methods=('GET', 'POST'))
 def index():
@@ -44,7 +41,23 @@ def record():
 def txtBtnClick(): 
     if request.method == 'POST':
         print (request.get_json())
-        res = make_response({'text': 'response'}, 200)
+
+        # dialog
+        res = requests.post(inference_url, json={
+            'infer_type': 'dialog',
+            'history': request.json.get('history'),
+            'query': request.json.get('query'),
+        })
+        response = res.json()['response']
+
+        # tts
+        res = requests.post(inference_url, json={
+            'infer_type': 'tts',
+            'text': response,
+        })
+        wav = res.json()['binary_audio']
+
+        res = make_response({'response': response, 'wav': wav}, 200)
         return res
     else:
         return ''
@@ -59,27 +72,54 @@ def recordBtnClick():
 def clearBtnClick():
     return ""
 
-
 @app.route('/inference', methods=('GET', 'POST'))
 def infer():
     if request.method == 'POST':
         print ('infer called!!!')
-        record = request.json.get('record')
-        record = base64.b64decode(record.encode('utf-8'))
+        
+        # asr
+        res = requests.post(inference_url, json={
+            'infer_type': 'asr', 
+            'record': request.json.get('record'), 
+        })
+        transcript = res.json()['transcript']
+        
+        # dialog
+        res = requests.post(inference_url, json={
+            'infer_type': 'dialog',
+            'history': request.json.get('history', []),
+            'query': transcript,
+        })
+        response = res.json()['response']
 
-        as_audio = AudioSegment.from_file(
-                io.BytesIO(record)).\
-                        set_frame_rate(16000).set_channels(1)
+        # tts
+        res = requests.post(inference_url, json={
+            'infer_type': 'tts',
+            'text': response,
+        })
+        wav = res.json()['binary_audio']
 
-        wavpath = 'tmp/tmpaudio.wav'
-        as_audio.export(wavpath, format='wav')
-        transcript = asr_model.transcribe(paths2audio_files=[wavpath])
-        print ('transcript: ', transcript)
+        return make_response({'transcript': transcript, 'response': response, 'wav': wav}, 200)
+        
 
-        response = nlp_model([], transcript[0])
-        print ('response: ', response)
 
-        res = make_response({'transcript': transcript[0], 'response': response}, 200)
-        return res
+#
+#        record = request.json.get('record')
+#        record = base64.b64decode(record.encode('utf-8'))
+#
+#        as_audio = AudioSegment.from_file(
+#                io.BytesIO(record)).\
+#                        set_frame_rate(16000).set_channels(1)
+#
+#        wavpath = 'tmp/tmpaudio.wav'
+#        as_audio.export(wavpath, format='wav')
+#        transcript = asr_model.transcribe(paths2audio_files=[wavpath])
+#        print ('transcript: ', transcript)
+#
+#        response = nlp_model([], transcript[0])
+#        print ('response: ', response)
+#
+#        res = make_response({'transcript': transcript[0], 'response': response}, 200)
+#        return res
 
 
